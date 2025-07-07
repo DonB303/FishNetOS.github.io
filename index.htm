@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fish-Net Terminal OS v1.3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  body {
+    margin: 0; background: black; color: #00ff00;
+    font-family: 'Share Tech Mono', monospace;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  #console {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    user-select: text;
+  }
+  #input-line {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #00ff00;
+    padding: 10px;
+  }
+  #prompt {
+    margin-right: 8px;
+  }
+  #cmdline {
+    background: black;
+    border: none;
+    outline: none;
+    color: #00ff00;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1em;
+    flex-grow: 1;
+  }
+  #cmdline:focus {
+    caret-color: #00ff00;
+  }
+  ::selection {
+    background: #00ff00;
+    color: black;
+  }
+  #console::-webkit-scrollbar {
+    width: 8px;
+  }
+  #console::-webkit-scrollbar-track {
+    background: black;
+  }
+  #console::-webkit-scrollbar-thumb {
+    background: #00ff00;
+  }
+</style>
+</head>
+<body>
+  <div id="console"></div>
+  <div id="input-line">
+    <span id="prompt">fish@euf:~$</span>
+    <input type="text" id="cmdline" autofocus autocomplete="off" spellcheck="false" />
+  </div>
+
+<script>
+  const consoleElem = document.getElementById('console');
+  const cmdline = document.getElementById('cmdline');
+  const promptStr = "fish@euf:~$";
+
+  // Fish-Net Web Nodes
+  const fishNetNodes = {
+    "dev.fish": `DEVELOPER LOGS:
+- Bruh
+- Bruh
+- Bruh
+- Bruh
+- Bruh`,
+
+    "art.fish": `ARTIFACT ARCHIVE:
+- FLAG - Fish Republic (v2.1)
+- BANNER - EUF Terminal Seal
+- ASCII - Shark in Stealth Mode
+    .............:-@@@#:....................................................::::::......................
+    .............:=@@@@:....................................................:*@@@*......................
+    .............:-@@@@:.::=+=:.............................................:%@-@#......................
+    ..............:+##=:.+@@@@%::...........................................:#@@@*......................
+    .....................*@@@@@::...........................................::-=-:......................
+    .....................+@@@@@::........................................:-@@@@@+:......................
+    .....................:*@@@=..........................................:%@@@@@@:......................
+    ..........................................:*@@@@@@@@@@@+::...........:@@@@@@@:......................
+    .................::#@@@@*:........:::+@@@@@@@%*+===+#@@@@@@@@-::.....:*@@@@@%:......................
+    .................:*@@##@@#.......:*@@@@@#:-*##=:-@@@@@@=::+@@@@@+::..::-*%#-:.......................
+    .................:@@=@%+@@....:-@@@@@@-@@@@@@@%=+@@+*%@+-@@@%:#@@@@-:...............................
+    .................:#@@@%@@@...:%@@@=@@@@@+@@++@@@@@#::@@=+@%@@@@@-@@@@=:....::--:::..................
+    .................:-@@@@@@=.:+@@@#%+%#@@-@@@@:*@@@@@@@+@@@@##@@@*@@#@@@@-:=@@@@@@@@+:................
+    ..........................:+@@@+#@@@@@@*@@@@#@@@@@@@@@@:==:@@*@@=@@@#@@@@@@@-::+@@@%:...............
+    .........................:+@@*@@@@@@#@@-@@@+@@*@@##@%=@@...#@@@@-@@%@@-@@*@@@@@@@+@@#:..............
+    .....................:::::@@@@%@@@@%@@@=:::-@@@*@=*@-@@@...:-++==@@@@@@@@@+@@@%#@@*@@-..............
+    ....................:+@@@@@%@@+%%-@+#@@-:..-@@*@@=*@#*@@::-%@@@@*@@@@-@@@%@**@@@+@@@@+..............
+    ....................+@@@*@@@@@@@@@#@@=@@@@@=%@@%@@@@@@@+-@@@@++@@@*::::::#@#=@@@@@@%@*..............
+    ....................@@+@@@*@@=@@@@@+@@=:-*@@@@@@@@@@@@-.-@@@%=@@*@@-....:+@%:::%@#@#@*..............
+    ....................@@@@@@#@%:...#@@@+----*@@@@=:--:::..-@@%@@@@@@@+....:+@%-#@@@@@@@+..............
+    ....................@@@@@@@@*:...+@@@*::-+%@@@#:........:+@@@@@#@#@*.:=@@+@%-@@@@@@@@-..............
+    ....................@@@*@@@@*....@@#@+:--++@%@@-........:#@@@@@@@@@-:-@@@@+@@@%@@@@@#:..............
+    ....................+@@@@@%@%:...@@@@@+::+@@@@@=........:#@#=--#@@%::%@@##@@@@@#+@@@:...............
+    .....................:*@@@#@@:=*=#@@#@@@@@@#@@@-........:+@@@@@@@%::#@@@@@@+::=@@@%:................
+    ........................-@@@@#@@@*.........::::.::-=-::....-++=-:::*@@+@@%@@@@@@#-..................
+    ........................:%@@@@@#@#:::::..:=##=:.::@@@@*:...+@@@#::%@@+@@=::::::::...................
+    .........................:@@+@%@@++@@@-..:#@@@#.::@@+@#::::=@%@%-@@@*@@*:...........................
+    .........................:+@@*@@@-#@*@+..:*@%@@.::%@@@*:=@@@=@@-@@@*@@+:............................
+    ..........................:=@@@@@@*@@@=..#@%@@#.-@@@#:::+@#@@*@@@-@@@#:.............................
+    ...........................:-@@@%@@@@#-::@@@@+:.-@%@@-:.=@@#@@@*@@@@#=:.............................
+    .............................=@@@@%-@@@@@*@@@+:.-@@@%:*@@@@@@+@@@@=:................................
+    .............................:-=+@@@@%#@@@@@@@@@@@@@@@@@#-=@@@@@-...................................
+    .................................::=@@@@@@*=::::::+##**@@@@@@@-:....................................
+    ...................................:::%@@@@@@@@@@@@@@@@@*-:::::.....................................
+    ......................................:::::.....::=##=:.............................................`,
+
+    "tunes.fish": `AUDIO FEED - Secure:
+- playback: ON
+- source: Bubble Beats v3
+- status: encrypted waveform
+Note: Fishstep detected in current channel.`,
+
+    "logs.fish": `SYSTEM LOGS:
+- 2025-07-08 09:00: Fish-Net core updated.
+- 2025-07-07 21:34: Unauthorized login attempt detected.
+- 2025-07-06 18:20: Archive backup completed.
+- 2025-07-05 12:00: Fishcord API patch deployed.`,
+
+    "news.fish": `FISH REPUBLIC NEWS - 2025-07-08
+
+- King Fish announces new breeding plan for aquafish.
+- Algae export production goals increased by 25%.
+- Resistance to capitalism grows, fish solidarity strengthened.
+- "Fishcord" expands, the voice of the people gets louder.
+
+For more info: connect dev.fish`,
+
+    "troll.fish": `TROLL ZONE - WARNING: ENTER AT YOUR OWN RISK:
+  Hehehe, fish can't even walk, how can they rule the sea?
+    - shurley not written by a crab`,
+  };
+
+  // Favorites Folder
+  const favoritesFiles = {
+    "star_chart.txt": "Star chart of Fish Republic's waters and known enemy crab zones.",
+    "recipes.txt": "Top secret algae cake recipes.",
+    "meme_collection.txt": "The dankest fish memes, highly classified.",
+  };
+
+  // Attack Plan Folder
+  const attackPlanFiles = {
+    "crab_imperium.txt": `
+----- ATTACK PLAN: CRAB IMPERIUM -----
+
+Objective:
+- Disrupt enemy crab supply lines.
+- Deploy stealth algae mines near Crab Hive entrances.
+- Mobilize Fish Republic’s Aquatic Commandos.
+
+Status:
+- Operation FishClaw in preparation.
+- Awaiting orders from King Fish.
+
+Remember: "We swim together, we strike together."
+    `.trim()
+  };
+
+  // Music Player Songs (Fake)
+  const musicTracks = [
+    "Bubble Beats v3",
+    "Algae Funk Remix",
+    "Deep Sea Chillout",
+    "Fishstep Classic",
+  ];
+
+  // TODO List for the 'todo' program
+  let todoList = [];
+
+  // Notes storage for the 'notes' program
+  let notesList = [];
+
+  // Current running program & state
+  let currentProgram = null;
+  let musicPlaying = false;
+  let musicTrackIndex = 0;
+
+  function printLine(text = "") {
+    consoleElem.innerHTML += text + "\n";
+    consoleElem.scrollTop = consoleElem.scrollHeight;
+  }
+
+  function clearConsole() {
+    consoleElem.innerHTML = "";
+  }
+
+  // Intro screen
+  function printIntro() {
+    clearConsole();
+    printLine("FISH-NET TERMINAL OS v1.3");
+    printLine("CLASSIFIED NETWORK - UNAUTHORIZED USERS WILL BE LOGGED AND DELETED\n");
+    printLine("Available programs:");
+    printLine("  web        : Browse Fish-Net network");
+    printLine("  calc       : Simple calculator");
+    printLine("  music      : Music player");
+    printLine("  attackplan : Secret attack plans");
+    printLine("  favorites  : Your favorite files");
+    printLine("  todo       : Manage your tasks");
+    printLine("  notes      : Simple note taking");
+    printLine("  help       : Show commands");
+    printLine("\nType a program name to start it.\n");
+  }
+
+  // Program implementations
+  function runWeb(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("Fish-Net Internal Commands:");
+      printLine("  connect <node>  - Connect to fish-net node");
+      printLine("  nodes           - List discovered nodes");
+      printLine("  exit            - Exit Fish-Net terminal\n");
+      return;
+    }
+
+    if(command === "nodes") {
+      printLine("NODES DISCOVERED:");
+      Object.keys(fishNetNodes).forEach(n => printLine("  - " + n));
+      return;
+    }
+
+    if(command.startsWith("connect ")) {
+      const node = command.slice(8).trim();
+      if(fishNetNodes[node]) {
+        printLine(fishNetNodes[node]);
+      } else {
+        printLine("ERROR: Node not found.");
+      }
+      return;
+    }
+
+    if(command === "exit") {
+      printLine("Exiting Fish-Net terminal...");
+      currentProgram = null;
+      printIntro();
+      return;
+    }
+
+    printLine("UNKNOWN COMMAND. Try 'connect dev.fish' or 'help'");
+  }
+
+  function runCalc(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("Calculator commands:");
+      printLine("  Enter any math expression (e.g. 2+2*3)");
+      printLine("  clear  - Clear the console");
+      printLine("  exit   - Exit calculator\n");
+      return;
+    }
+
+    if(command === "clear") {
+      clearConsole();
+      return;
+    }
+
+    if(command === "exit") {
+      printLine("Exiting Calculator...");
+      currentProgram = null;
+      printIntro();
+      return;
+    }
+
+    try {
+      // Only allow numbers and math operators for safety
+      if(!/^[0-9+\-*/().\s]+$/.test(command)) throw new Error("Invalid characters.");
+      let result = eval(command);
+      printLine(command + " = " + result);
+    } catch {
+      printLine("Invalid expression. Type 'help' for usage.");
+    }
+  }
+
+  function runMusic(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("Music Player commands:");
+      printLine("  play       - Start playback");
+      printLine("  pause      - Pause playback");
+      printLine("  next       - Next track");
+      printLine("  prev       - Previous track");
+      printLine("  list       - Show track list");
+      printLine("  exit       - Exit music player\n");
+      return;
+    }
+
+    switch(command) {
+      case "play":
+        if(musicPlaying) {
+          printLine("Already playing: " + musicTracks[musicTrackIndex]);
+        } else {
+          musicPlaying = true;
+          printLine("Playing: " + musicTracks[musicTrackIndex]);
+        }
+        break;
+      case "pause":
+        if(musicPlaying) {
+          musicPlaying = false;
+          printLine("Paused.");
+        } else {
+          printLine("Music already paused.");
+        }
+        break;
+      case "next":
+        musicTrackIndex = (musicTrackIndex + 1) % musicTracks.length;
+        printLine("Switched to: " + musicTracks[musicTrackIndex]);
+        if(musicPlaying) {
+          printLine("Playing...");
+        }
+        break;
+      case "prev":
+        musicTrackIndex = (musicTrackIndex - 1 + musicTracks.length) % musicTracks.length;
+        printLine("Switched to: " + musicTracks[musicTrackIndex]);
+        if(musicPlaying) {
+          printLine("Playing...");
+        }
+        break;
+      case "list":
+        printLine("Track list:");
+        musicTracks.forEach((t, i) => {
+          printLine(` ${i === musicTrackIndex ? ">" : " "} ${i + 1}. ${t}`);
+        });
+        break;
+      case "exit":
+        printLine("Exiting music player...");
+        musicPlaying = false;
+        currentProgram = null;
+        printIntro();
+        break;
+      default:
+        printLine("Unknown command. Type 'help' for music commands.");
+    }
+  }
+
+  function runAttackPlan(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("Attack Plan commands:");
+      printLine("  show          - Display current attack plan");
+      printLine("  exit          - Exit attack plan viewer\n");
+      return;
+    }
+
+    if(command === "show") {
+      Object.keys(attackPlanFiles).forEach(file => {
+        printLine(`File: ${file}`);
+        printLine(attackPlanFiles[file]);
+        printLine("");
+      });
+      return;
+    }
+
+    if(command === "exit") {
+      printLine("Exiting attack plan...");
+      currentProgram = null;
+      printIntro();
+      return;
+    }
+
+    printLine("Unknown command. Type 'help' for commands.");
+  }
+
+  function runFavorites(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("Favorites commands:");
+      printLine("  list            - List favorite files");
+      printLine("  open <filename>  - Show file content");
+      printLine("  exit            - Exit favorites\n");
+      return;
+    }
+
+    if(command === "list") {
+      printLine("Favorite files:");
+      Object.keys(favoritesFiles).forEach(f => printLine("  - " + f));
+      return;
+    }
+
+    if(command.startsWith("open ")) {
+      const filename = command.slice(5).trim();
+      if(favoritesFiles[filename]) {
+        printLine(`--- ${filename} ---`);
+        printLine(favoritesFiles[filename]);
+        printLine(`--- end of ${filename} ---`);
+      } else {
+        printLine("File not found in favorites.");
+      }
+      return;
+    }
+
+    if(command === "exit") {
+      printLine("Exiting favorites...");
+      currentProgram = null;
+      printIntro();
+      return;
+    }
+
+    printLine("Unknown command. Type 'help' for favorites commands.");
+  }
+
+  function runTodo(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("TODO commands:");
+      printLine("  add <task>     - Add a new task");
+      printLine("  list           - List all tasks");
+      printLine("  done <number>  - Mark task as done and remove it");
+      printLine("  clear          - Clear all tasks");
+      printLine("  exit           - Exit todo\n");
+      return;
+    }
+
+    if(command === "list") {
+      if(todoList.length === 0) {
+        printLine("TODO list is empty.");
+      } else {
+        printLine("TODO list:");
+        todoList.forEach((task, i) => {
+          printLine(`  ${i + 1}. ${task}`);
+        });
+      }
+      return;
+    }
+
+    if(command.startsWith("add ")) {
+      const task = command.slice(4).trim();
+      if(task.length > 0) {
+        todoList.push(task);
+        printLine(`Added task: "${task}"`);
+      } else {
+        printLine("No task specified.");
+      }
+      return;
+    }
+
+    if(command.startsWith("done ")) {
+      const num = parseInt(command.slice(5).trim(), 10);
+      if(isNaN(num) || num < 1 || num > todoList.length) {
+        printLine("Invalid task number.");
+      } else {
+        const removed = todoList.splice(num - 1, 1);
+        printLine(`Completed task: "${removed[0]}"`);
+      }
+      return;
+    }
+
+    if(command === "clear") {
+      todoList = [];
+      printLine("All tasks cleared.");
+      return;
+    }
+
+    if(command === "exit") {
+      printLine("Exiting todo...");
+      currentProgram = null;
+      printIntro();
+      return;
+    }
+
+    printLine("Unknown command. Type 'help' for todo commands.");
+  }
+
+  function runNotes(command) {
+    if(command === "") return;
+
+    if(command === "help") {
+      printLine("Notes commands:");
+      printLine("  add <note>     - Add a new note");
+      printLine("  list           - List all notes");
+      printLine("  delete <num>   - Delete note by number");
+      printLine("  clear          - Clear all notes");
+      printLine("  exit           - Exit notes\n");
+      return;
+    }
+
+    if(command === "list") {
+      if(notesList.length === 0) {
+        printLine("No notes available.");
+      } else {
+        printLine("Notes:");
+        notesList.forEach((note, i) => {
+          printLine(`  ${i + 1}. ${note}`);
+        });
+      }
+      return;
+    }
+
+    if(command.startsWith("add ")) {
+      const note = command.slice(4).trim();
+      if(note.length > 0) {
+        notesList.push(note);
+        printLine(`Added note: "${note}"`);
+      } else {
+        printLine("No note specified.");
+      }
+      return;
+    }
+
+    if(command.startsWith("delete ")) {
+      const num = parseInt(command.slice(7).trim(), 10);
+      if(isNaN(num) || num < 1 || num > notesList.length) {
+        printLine("Invalid note number.");
+      } else {
+        const removed = notesList.splice(num - 1, 1);
+        printLine(`Deleted note: "${removed[0]}"`);
+      }
+      return;
+    }
+
+    if(command === "clear") {
+      notesList = [];
+      printLine("All notes cleared.");
+      return;
+    }
+
+    if(command === "exit") {
+      printLine("Exiting notes...");
+      currentProgram = null;
+      printIntro();
+      return;
+    }
+
+    printLine("Unknown command. Type 'help' for notes commands.");
+  }
+
+  // Main command processor
+  function processCommand(command) {
+    if(currentProgram === null) {
+      // No program running - interpret command as program name or 'help'
+      switch(command) {
+        case "":
+          return;
+        case "help":
+          printIntro();
+          break;
+        case "web":
+        case "calc":
+        case "music":
+        case "attackplan":
+        case "favorites":
+        case "todo":
+        case "notes":
+          currentProgram = command;
+          printLine(`Launching ${command} program. Type 'help' for commands.\n`);
+          break;
+        default:
+          printLine("Unknown program. Available: web, calc, music, attackplan, favorites, todo, notes.");
+      }
+    } else {
+      // A program is running, pass the command to its handler
+      switch(currentProgram) {
+        case "web":
+          runWeb(command);
+          break;
+        case "calc":
+          runCalc(command);
+          break;
+        case "music":
+          runMusic(command);
+          break;
+        case "attackplan":
+          runAttackPlan(command);
+          break;
+        case "favorites":
+          runFavorites(command);
+          break;
+        case "todo":
+          runTodo(command);
+          break;
+        case "notes":
+          runNotes(command);
+          break;
+      }
+    }
+  }
+
+  // Setup
+  printIntro();
+
+  cmdline.addEventListener("keydown", e => {
+    if(e.key === "Enter") {
+      const cmd = cmdline.value.trim();
+      printLine(promptStr + " " + cmd);
+      processCommand(cmd.toLowerCase());
+      cmdline.value = "";
+    }
+  });
+</script>
+</body>
+</html>
